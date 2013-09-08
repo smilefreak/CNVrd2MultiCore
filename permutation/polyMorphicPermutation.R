@@ -1,0 +1,141 @@
+
+require(CNVrd2)
+require(parallel)
+
+cores=2
+
+permuteSample <- function(segmentationResultsForSample,st,windows){
+		ranks=seq(1,nrow(segmentationResultsForSample))	
+		reorder_ranks=sample(ranks,replace=F)
+		segmentationResultsForSample = segmentationResultsForSample[reorder_ranks,]	
+		# Improve speed of this horrible for loop lol
+		for( i in 1:nrow(segmentationResultsForSample)){
+			dif = segmentationResultsForSample[i,4] - segmentationResultsForSample[i,3] + windows
+			segmentationResultsForSample[i,3] = st
+			segmentationResultsForSample[i,4] = st  + dif - windows
+			st = st + dif
+		}	
+		return(segmentationResultsForSample)
+}
+
+kstestwrapper = function(x,y){
+		polyMorphicResampling[[2]]$subRegionMatrix[1,]
+		mapply(ks.test,split(x$subRegionMatrix,col(x$subRegionMatrix)),split(y$subRegionMatrix,col(y$subRegionMatrix)))
+}
+
+# Permutes the regions that have been found by Binary segmentation.
+permuteSegmentationScores  <-  function(segment_scores,cnvrd2Object){
+	ranks = seq(1,length(segment_scores[[1]]))
+	samples = rownames(segment_scores$segmentationScores)
+	#pull out samples
+	sample_list=lapply(samples, function(x) segment_scores[[1]]$segmentResults[[which(rownames(segment_scores[[1]]$segmentationScores)==as.character(x))]],cnvrd2Object=results[[1]])
+  polyMorphicResampling = list()
+	new_samples = list()
+	# do permutation 1000 times
+	pdf('permutation_testing.pdf')
+	real_polyMorphic = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]])
+	for ( i in 1:100){
+		permuted_samples=lapply(sample_list,permuteSample,st = results[[1]]@st,results[[1]]@windows)
+		new_samples[[i]]=list(segmentResults=(permuted_samples))
+		polyMorphicResampling[[i]]=identifyPolymorphicRegion(Object=results[[1]],segmentObject=new_samples[[i]])
+	}
+	merged_regions = real_polyMorphic$subRegion
+	# Get new subregions likely to just be the window size
+	for ( i in 1:length(polyMorphicResampling)){	
+	merged_regions=rbind(merged_regions,polyMorphicResampling[[i]]$subRegion)	
+}
+	sub_regions=sort(unique(c(merged_regions[,1],merged_regions[,2])))
+
+# Hoang code stolen from his project
+fix_subregions  <-  function (segment_data,polymorphic_region,sub_regions)	{
+	print("Started Fixing Subregions")
+	segmentResults <- segment_data$segmentResults
+  sampleid <- sapply(segmentResults, function(x) x[1, 1])
+  cna.out <- do.call(rbind, segmentResults)
+
+  cna.out[, 4] <- cna.out[, 4] + results[[1]]@windows
+
+  ##Obtain sub-regions#########
+	subRegionData <- data.frame(sub_regions[-length(sub_regions)], sub_regions[-1])
+	subRegionMatrix <- matrix(0, nrow = length(sampleid),
+                          ncol = dim(subRegionData[1]))
+		
+	  for (ii in 1:length(sampleid)){
+      subCNA <- cna.out[grep(sampleid[ii], cna.out[, 1]), c(3, 4, 6)]
+			for (jj in 1:nrow(subCNA)){
+				first_index = 1
+				start_position = subCNA[jj,1]
+				end_position = subCNA[jj,2]
+				startSeq = findInterval(x=start_position,vec=subRegionData[,1])
+				endSeq = findInterval(x=end_position,vec=subRegionData[,2])
+				while(subRegionData[endSeq,2] <= end_position && endSeq <= length(subRegionData[endSeq,2])){
+					endSeq = endSeq+1
+				}
+				indexes = seq(from=startSeq,to=endSeq)
+        subRegionMatrix[ii, indexes] <-subCNA[jj,3] 
+        }}
+	polymorphic_region$subRegion=subRegionData
+	polymorphic_region$subRegionMatrix=subRegionMatrix
+	print(class(polymorphic_region))
+	return(polymorphic_region)
+}
+polyMorphicResamplingNew=mapply(fix_subregions,new_samples,polyMorphicResampling,MoreArgs=list(sub_regions=sub_regions),SIMPLIFY=FALSE)
+
+real_polyMorphic = fix_subregions(segment_scores[[1]],real_polyMorphic,sub_regions)
+
+
+#calculate KS test for each sample against the null distribution if 95% of the time we get a 
+# significant result we can be confident that we have a polymorphic copy number region.
+#
+
+# Ignore the start of the chromosome
+ get_min_and_max = function(permutations){
+		subRegions = permutations$subRegionMatrix
+		min_and_max = apply(subRegions,2,function(x) return(c(min(x),max(x))))
+		return(min_and_max)
+}
+	full_window_ks_test=lapply(polyMorphicResamplingNew,kstestwrapper,y=real_polyMorphic)
+	ks.results = matrix(nrow=ncol(full_window_ks_test[[1]]),ncol=length(full_window_ks_test))
+	for(j in 1:ncol(full_window_ks_test[[1]])){
+	for(i in 1:length(full_window_ks_test)){
+				ks.results[j,i] = as.numeric(full_window_ks_test[[i]][2,j])
+		}
+	}
+	ks.summary = apply(ks.results,1,function(x) 1- sum(x<.05)/length(x))
+	max_and_min = lapply(polyMorphicResamplingNew,get_min_and_max)
+	max_and_min_mat=as.matrix(max_and_min)
+	max_results_per_region=max_and_min[[1]][,2]
+	min_results_per_region=max_and_min[[1]][,1]
+	for(i in 2:length(max_and_min)){
+			max_results_per_region=rbind(max_results_per_region,max_and_min[[i]][,2])
+			min_results_per_region=rbind(min_results_per_region,max_and_min[[i]][,1])
+	}
+	permutedCI=function(permuted_row,alpha){
+			permuted_row= sort(permuted_row)
+			perc_ci = c()
+			perc_ci[1] = permuted_row[length(permuted_row)*alpha/2]
+			perc_ci[2] = permuted_row[length(permuted_row)*(1-alpha/2)]
+			return(perc_ci)
+	}
+	perc_ci_max=apply(max_results_per_region,2,permutedCI,alpha=0.05)
+	perc_ci_min=apply(min_results_per_region,2,permutedCI,alpha=0.05)
+	min_breaks=apply(min_results_per_region,2,function(x) mean(x))
+	max_breaks=apply(max_results_per_region,2,function(x) mean(x))	
+	ci=c()
+	ci[1] = min_breaks[floor(length(min_breaks))*(0.05/2)]
+	ci[2] = max_breaks[floor(length(max_breaks))*(1-0.05/2)]
+	abline(h=ci)	
+	#construct ci.
+		
+	dev.off()
+	# Stitch data back together
+	# parse back together into something that looks like an actual format we need for identify polymorphic Regions
+}
+
+samples = rownames(segment_scores[[1]]$segmentationScores)
+permuteSegmentationScores(segment_scores[[1]],results[[1]])
+
+
+
+x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]])
+
