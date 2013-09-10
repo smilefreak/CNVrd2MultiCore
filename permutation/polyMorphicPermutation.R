@@ -96,12 +96,14 @@ real_polyMorphic = fix_subregions(segment_scores[[1]],real_polyMorphic,sub_regio
 }
 	full_window_ks_test=lapply(polyMorphicResamplingNew,kstestwrapper,y=real_polyMorphic)
 	ks.results = matrix(nrow=ncol(full_window_ks_test[[1]]),ncol=length(full_window_ks_test))
+	anovaResluts = matrix(nrow=ncol(full_window_ks_test[[1]]),ncol=length(full_window_ks_test))
 	for(j in 1:ncol(full_window_ks_test[[1]])){
 	for(i in 1:length(full_window_ks_test)){
 				ks.results[j,i] = as.numeric(full_window_ks_test[[i]][2,j])
+				anovaResluts[j,i] = as.numeric(full_window_ks_test[[i]][2,j])
 		}
 	}
-	ks.summary = apply(ks.results,1,function(x) 1- sum(x<.05)/length(x))
+	ks.summary = apply(ks.results,1,function(x) sum(x<.05)/length(x))
 	max_and_min = lapply(polyMorphicResamplingNew,get_min_and_max)
 	max_and_min_mat=as.matrix(max_and_min)
 	max_results_per_region=max_and_min[[1]][,2]
@@ -110,6 +112,10 @@ real_polyMorphic = fix_subregions(segment_scores[[1]],real_polyMorphic,sub_regio
 			max_results_per_region=rbind(max_results_per_region,max_and_min[[i]][,2])
 			min_results_per_region=rbind(min_results_per_region,max_and_min[[i]][,1])
 	}
+	max_results_per_region=max_and_min[[1]][,2]
+	min_results_per_region=max_and_min[[1]][,1]
+	
+
 	permutedCI=function(permuted_row,alpha){
 			permuted_row= sort(permuted_row)
 			perc_ci = c()
@@ -132,10 +138,98 @@ real_polyMorphic = fix_subregions(segment_scores[[1]],real_polyMorphic,sub_regio
 	# parse back together into something that looks like an actual format we need for identify polymorphic Regions
 }
 
+rangeDifference=function(x,y){
+	#print('x')
+	#print(length(x))
+	#print('y')
+	#print(length(y))
+	return ((max(y) - min(y)) - (max(x)-min(x)))
+}
+min_and_max_real_data = get_min_and_max(real_polyMorphic)
+ranges=lapply(max_and_min,function(x) return(mapply(rangeDifference,split(x,row(x)),split(min_and_max_real_data,col(min_and_max_real_data)))))
 samples = rownames(segment_scores[[1]]$segmentationScores)
 permuteSegmentationScores(segment_scores[[1]],results[[1]])
+#bartlett test
 
 
+ranges_per_region = as.matrix(ranges)
+ranges_per_region = apply(ranges_per_region,1,function(x) {return(x[[1]])})
+ranges_per_region = matrix(ncol=length(ranges),nrow=length(ranges[[1]]))
+thousand_row_difference=c()
+counts = c()
+poly_morphic_regions = function(ranges_per_region,distance_in_std_deviation)
+for ( i in 1:nrow(ranges_per_region)){
+	print(i)
+	counts[i] = 0
+	for( j in 1:ncol(ranges_per_region)){
+#				print(ranges_per_region[1000,j])
+				if((mean(ranges_per_region) + distance_in_std_deviation* sd(ranges_per_region[,j])) <= ranges_per_region[i,j]){
+					counts[i] = counts[i] + 1		
+				}
+		}
+}
+}
+count2 = c()
+for ( i in 1:nrow(ranges_per_region)){
+	print(i)
+	count2[i] = 0
+	for( j in 1:ncol(ranges_per_region)){
+#				print(ranges_per_region[1000,j])
+				if((mean(ranges_per_region) + 1.5* sd(ranges_per_region[,j])) <= ranges_per_region[i,j]){
+		count2[i] = counts[i] + 1		
+}
+	}
+}
+count2 = c()
 
-x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]])
+new_counts = c()
+count_indices = c()
+index = 1
+for( i in 1:length(counts)){
+	if( counts[i] > 95){
+		count_indices[index] = i
+		index = index + 1
+		print(i)
+		new_counts[i] = 1
+	}else{
+		new_counts[i] = 0
+	}
+}
 
+#range difference
+
+truncate_polymorphic_regions = function(new_counts){
+	start_index = c()
+	end_index = c()
+	index = 1
+	set_start = T
+	for ( i in 1:length(new_counts)){
+		if(new_counts[i] == 1){
+				if(set_start == T){
+				start_index[index] = (i * 1000) - 1000	
+				set_start = F
+				}
+		}else{
+				# going to be one longer than it needs to be if 
+				# what we are testing really doesn't match up
+				if(set_start == F){
+					end_index[index] = (i * 1000) 
+					set_start =T 
+					index= index + 1
+				}
+		}
+	}
+	return(cbind(start_index,end_index))
+}
+
+putative_regions = truncate_polymorphic_regions(new_counts)
+
+temp_x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]],xlim=limits)
+temp_y = identifyPolymorphicRegion(Object = results[[1]],segmentObject=new_samples[[2]],xlim=limits)
+pdf('putative_regions.pdf')
+for ( i in 1:nrow(putative_regions)){
+limits=c(putative_regions[i,1] ,putative_regions[i,2] )
+plotPolymorphicRegion(Object = results[[1]],polymorphicRegionObject=x,xlim=limits)
+plotPolymorphicRegion(Object = results[[1]],polymorphicRegionObject=y,xlim=limits)
+}
+dev.off()
