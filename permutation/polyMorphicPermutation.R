@@ -189,8 +189,8 @@ for ( i in 1:nrow(q_ranges_per_region)){
 		}
 }
 wilcox.test
-range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifference,split(x,row(x)),split(q_realdata,col(q_realdata)))))
-range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifferenceQuantile,split(x,row(x)),split(min_and_max_real_data,col(min_and_max_real_data)))))
+#range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifference,split(x,row(x)),split(q_realdata,col(q_realdata)))))
+#range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifferenceQuantile,split(x,row(x)),split(min_and_max_real_data,col(min_and_max_real_data)))))
 q_ranges_per_region = as.matrix(q_permutationdata)
 q_ranges_per_region = apply(q_ranges_per_region,1,function(x) {return(x[[1]])})
 quantile_per_region = apply(q_ranges_per_region,1,function(x) return(quantile(x,probs=c(.05,.95))))
@@ -273,7 +273,8 @@ truncate_polymorphic_regions = function(new_counts){
 	print(length(end_index))
 	return(cbind(start_index,end_index))
 }
-
+ninetyseven=quantile(apply(q_ranges_per_region,1,quantile,probs=.975),probs=.975)
+putative_regions = truncate_polymorphic_regions(sapply(q_realdata,function(x) ifelse(x >= ninetyseven,1,0)))
 putative_regions = truncate_polymorphic_regions(new_counts)
 putative_regions = truncate_polymorphic_regions(pvalue)
 temp_x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]],xlim=limits)
