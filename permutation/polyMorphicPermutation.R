@@ -175,6 +175,14 @@ ranges_per_region = as.matrix(ranges)
 ranges_per_region = apply(q_ranges_per_region,1,function(x) {return(x[[1]])})
 #quantile tests
 
+get_max_median = function(permutations,probs){
+		subRegions = permutations$subRegionMatrix
+		return( apply(subRegions,2,function(x) return(max(abs(quantile(x,probs=probs)[2] - median(x)), abs(quantile(x,probs=probs)[1]-median(x))))))
+	}
+
+m_permutationdata = lapply(polyMorphicResamplingNew,get_max_median,probs=c(.05,.95))
+m_readata = get_max_median(real_polyMorphic,probs=c(.05,.95))
+
 q_permutationdata = lapply(polyMorphicResamplingNew,get_quantiles,probs=c(.05,.95))
 q_realdata = get_quantiles(real_polyMorphic,probs=c(.05,.95)) 
 
@@ -188,6 +196,7 @@ for ( i in 1:nrow(q_ranges_per_region)){
 			pvalue[i] = 0
 		}
 }
+
 wilcox.test
 #range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifference,split(x,row(x)),split(q_realdata,col(q_realdata)))))
 #range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifferenceQuantile,split(x,row(x)),split(min_and_max_real_data,col(min_and_max_real_data)))))
