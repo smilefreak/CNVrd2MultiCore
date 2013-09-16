@@ -15,13 +15,45 @@ pbar = None
 logging.basicConfig(filename="sample.log", level=logging.INFO)
 
 import pysam
+import pickle
+
+# Class representing all the reads and positions for all the reads in the file
+
+class sizeAndPosition(Object):
+    def __init__(self,positions,size,chromosomes):
+        self._positions=positions
+        self._sizes=size
+        self._chromosomes=chromosomes
+        
+    @property
+    def sizes(self):
+        return self._sizes
+    @property
+    def positions(self):
+        return self._positions
+    @property
+    def chromosomes(self):
+        return self._chromosomes
 
 def read_bams(bam_file):
     return pysam.SamFile(bam_file,'r')
 
+
+# dumb the coordinates out to file.
 def write_coordinates_and_length(bam_file,output_file):
-    with open(output_file,'wb') as f:
-       return 0  
+    sizes=[]
+    chromosomes=[]
+    positions[]
+    i = 0 
+    for bam in bam_file:
+        sizes[i]=int(bam.rlen)
+        positions[i]=long(bam.position)
+        chromosomes[i]=1
+        i = i + 1
+    dump=sizeAndPosition(position,sizes,chromosomes)
+    with open(bam_file,'wb') as out
+        pickle.dump(dump,out)
+
 
 def open_1kg_connection(access_key,secret_key):
     conn=S3Connection(access_key,secret_key)
@@ -81,7 +113,7 @@ def main():
                 bam_file = os.path.join(working_dir,os.path.basename(line))
                 download_file(bam_file,key)
                 # Read bam into R get readlength + position as a 64 bit interger.# 
-                read_bams = read_bam(bam_file)
+                read_bams = read_bams(bam_file)
 
                 # This is where it gets a bit obscure 
                 # first byte = chromosome number in ASCII
