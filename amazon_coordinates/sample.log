@@ -26,3 +26,6 @@ INFO:root:File Size 32016783440
 INFO:root:File Size 32016783440
 ERROR:root:Failed to Download Temp/HG00097.mapped.ILLUMINA.bwa.GBR.low_coverage.20130415.bam
 ERROR:root:[Errno 28] No space left on device
+INFO:root:File Size 32016783440
+ERROR:root:Failed to Download Temp/HG00097.mapped.ILLUMINA.bwa.GBR.low_coverage.20130415.bam
+ERROR:root:[Errno 28] No space left on device
