@@ -1,0 +1,10 @@
+README
+setup.py
+aws1kg/__init__.py
+aws1kg/http_bam_server.py
+aws1kg/process_sample.py
+aws_1000_genomes.egg-info/PKG-INFO
+aws_1000_genomes.egg-info/SOURCES.txt
+aws_1000_genomes.egg-info/dependency_links.txt
+aws_1000_genomes.egg-info/entry_points.txt
+aws_1000_genomes.egg-info/top_level.txt

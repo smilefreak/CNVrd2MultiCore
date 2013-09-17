@@ -1,0 +1,5 @@
+Version 0.1
+
+Basic XMLRPC server for spawning instances on amazon and starting them with the right settings.
+
+line seperated file in /etc/bam_list
