@@ -119,9 +119,11 @@ def main():
                 # first byte = chromosome number in ASCII
                 # second byte = read length
                 # third byte = position start of the read mapped to 
-                output = os.path.basename(bam_file) + ".cnvb"
+                output = os.path.basename(bam_file) + ".cnvpk"
                 write_coordinates_and_length(bam_file,output)
+                #os.remove(bam_file)
                 i = i + 1
+                
             else:
                 break
 
