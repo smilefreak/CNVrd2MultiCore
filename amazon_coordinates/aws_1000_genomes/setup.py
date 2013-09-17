@@ -8,7 +8,7 @@ setup(
     author = "James Boocock",
     author_email = "smilefreak@gmx.com",
     packages =find_packages(),
-    zipSafe=False,
+    zip_safe=False,
     entry_points = {
         'console_scripts': [
             'bam_server = aws1kg.http_bam_server:main',

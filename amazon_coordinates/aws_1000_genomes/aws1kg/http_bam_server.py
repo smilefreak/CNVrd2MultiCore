@@ -33,7 +33,7 @@ def main():
         logging.info("Bam file : {0}".format(bam))
         bams.task_done()
         return bam
-    server = SimpleXMLRPCServer(("localhost",8000),
+    server = SimpleXMLRPCServer(("0.0.0.0",8000),
                                 requestHandler=RequestHandler)
     server.register_introspection_functions()
     server.register_function(get_bam_file)

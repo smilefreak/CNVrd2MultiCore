@@ -4,7 +4,8 @@ case "$1" in
 start)
 echo "Starting process_samples"
 echo "running process_bam" > /home/ubuntu/out
-process_bam -x "http://23.23.88.18:8080" -o /bam
+process_bam -x "http://ec2-23-23-88-18.compute-1.amazonaws.com:8000" -o /bams
+shutdown -h now
 ;;
 esac
 

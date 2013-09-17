@@ -142,7 +142,13 @@ def main():
             gzip_file(output,gzip_file)
             end_time=time.time()
             logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
-            
+            os.remove(bam_file)        
+            os.remove(output)
+            b = c.get_bucket('1kg_CNVRD2')
+            k=Key(b)
+            k.key = gzip_out
+            k.set_contents_from_filename(gzip_out)
+            os.remove(gzip_out)
             bam=server.get_bam_file()
             i = i + 1
 
