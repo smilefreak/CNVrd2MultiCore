@@ -1,0 +1,4 @@
+[console_scripts]
+process_bam = aws1kg.process_sample:main
+bam_server = aws1kg.http_bam_server:main
+
