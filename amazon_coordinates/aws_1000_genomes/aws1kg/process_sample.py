@@ -119,28 +119,31 @@ def main():
     buck = open_1kg_connection()
     print(server.system.listMethods())
     bam=server.get_bam_file()
+    i = 0
     while( bam!= False):
-        key = buck.get_key(bam)
-        bam_file = os.path.join(working_dir,os.path.basename(bam))
-        start_time=time.time()
-        download_file(bam_file,key)
-        end_time=time.time()
-        logging.info("Elapsed time to download bam : {0} = {1}".format(bam_file,str(end_time-start_time)))
-        # Read bam into R get readlength + position as a 64 bit interger.# 
-        bam=read_bams(bam_file)
+        if ( i < 1 ):
+            key = buck.get_key(bam)
+            bam_file = os.path.join(working_dir,os.path.basename(bam))
+            start_time=time.time()
+            download_file(bam_file,key)
+            end_time=time.time()
+            logging.info("Elapsed time to download bam : {0} = {1}".format(bam_file,str(end_time-start_time)))
+            # Read bam into R get readlength + position as a 64 bit interger.# 
+            bam=read_bams(bam_file)
 
-        # This is where it gets a bit obscure 
-        # first byte = chromosome number in ASCII
-        # second byte = read length
-        # third byte = position start of the read mapped to 
-        output = (bam_file) + ".cnvb"
-        gzip_out = (bam_file) + ".cnv.gz"
-        start_time=time.time()
-        write_coordinates_and_length(bam,output)
-        gzip_file(output,gzip_file)
-        end_time=time.time()
-        logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
-        
-        bam=server.get_bam_file()
+            # This is where it gets a bit obscure 
+            # first byte = chromosome number in ASCII
+            # second byte = read length
+            # third byte = position start of the read mapped to 
+            output = (bam_file) + ".cnvb"
+            gzip_out = (bam_file) + ".cnv.gz"
+            start_time=time.time()
+            write_coordinates_and_length(bam,output)
+            gzip_file(output,gzip_file)
+            end_time=time.time()
+            logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
+            
+            bam=server.get_bam_file()
+            i = i + 1
 
 if __name__=="__main__":main()
