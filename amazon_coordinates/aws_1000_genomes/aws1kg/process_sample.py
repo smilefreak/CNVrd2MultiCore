@@ -1,7 +1,9 @@
 from optparse import OptionParser
 from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 import os
 import xmlrpclib
+import gzip
 import logging
 import time
 import progressbar
@@ -68,6 +70,7 @@ def write_coordinates_and_length(bam_file,output_file):
 
 
 def open_1kg_connection():
+
     conn=S3Connection()
     buck=conn.get_bucket('1000genomes')
     return buck
@@ -121,35 +124,34 @@ def main():
     bam=server.get_bam_file()
     i = 0
     while( bam!= False):
-        if ( i < 1 ):
-            key = buck.get_key(bam)
-            bam_file = os.path.join(working_dir,os.path.basename(bam))
-            start_time=time.time()
-            download_file(bam_file,key)
-            end_time=time.time()
-            logging.info("Elapsed time to download bam : {0} = {1}".format(bam_file,str(end_time-start_time)))
-            # Read bam into R get readlength + position as a 64 bit interger.# 
-            bam=read_bams(bam_file)
+        key = buck.get_key(bam)
+        bam_file = os.path.join(working_dir,os.path.basename(bam))
+        start_time=time.time()
+        download_file(bam_file,key)
+        end_time=time.time()
+        logging.info("Elapsed time to download bam : {0} = {1}".format(bam_file,str(end_time-start_time)))
+        # Read bam into R get readlength + position as a 64 bit interger.# 
+        bam=read_bams(bam_file)
 
-            # This is where it gets a bit obscure 
-            # first byte = chromosome number in ASCII
-            # second byte = read length
-            # third byte = position start of the read mapped to 
-            output = (bam_file) + ".cnvb"
-            gzip_out = (bam_file) + ".cnv.gz"
-            start_time=time.time()
-            write_coordinates_and_length(bam,output)
-            gzip_file(output,gzip_file)
-            end_time=time.time()
-            logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
-            os.remove(bam_file)        
-            os.remove(output)
-            b = c.get_bucket('1kg_CNVRD2')
-            k=Key(b)
-            k.key = gzip_out
-            k.set_contents_from_filename(gzip_out)
-            os.remove(gzip_out)
-            bam=server.get_bam_file()
-            i = i + 1
+        # This is where it gets a bit obscure 
+        # first byte = chromosome number in ASCII
+        # second byte = read length
+        # third byte = position start of the read mapped to 
+        output = (bam_file) + ".cnvb"
+        gzip_out = (bam_file) + ".cnv.gz"
+        start_time=time.time()
+        write_coordinates_and_length(bam,output)
+        gzip_file(output,gzip_file)
+        end_time=time.time()
+        logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
+        os.remove(bam_file)        
+        os.remove(output)
+        b = c.get_bucket('1kg_cnvrd2')
+        k=Key(b)
+        k.key = os.basename(gzip_out)
+        k.set_contents_from_filename(gzip_out)
+        os.remove(gzip_out)
+        bam=server.get_bam_file()
+        i = i + 1
 
 if __name__=="__main__":main()
