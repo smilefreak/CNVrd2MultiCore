@@ -7,3 +7,8 @@ INFO:root:File Size 18067266048
 ERROR:root:Failed to Download /bam/HG03585.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam
 ERROR:root:[Errno 2] No such file or directory: '/bam/HG03585.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam'
 INFO:root:Elapsed time to download bam : /bam/HG03585.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam = 0.00188589096069
+INFO:root:File Size 19600043104
+ERROR:root:Failed to Download /bams/HG03598.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam
+ERROR:root:[Errno 13] Permission denied: '/bams/HG03598.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam'
+INFO:root:Elapsed time to download bam : /bams/HG03598.mapped.ILLUMINA.bwa.BEB.low_coverage.20121211.bam = 0.00173783302307
+INFO:root:File Size 26539865799
