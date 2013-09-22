@@ -3,11 +3,11 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 import os
 import xmlrpclib
-import gzip
 import logging
+import subprocess
+import gzip
 import time
 import progressbar
-import zlib
 import xmlrpclib
 #
 #  Creates coordinates files for each file in the 1000 genomes data set
@@ -73,7 +73,7 @@ def open_1kg_connection():
 
     conn=S3Connection()
     buck=conn.get_bucket('1000genomes')
-    return buck
+    return (conn,buck)
 
 def progress_callback(current,total):
     try:
@@ -101,10 +101,7 @@ def download_file(bam_file,key):
         logging.error(e)
     pbar.finish()
 def gzip_file(output,gzip_out):
-    with open(output,'rb') as out:
-        with gzip.open(gzip_out,'wb') as zip_out:
-           zip_out.writelines(out)
-
+    subprocess.check__call(['gzip',output])
 def connect_to_xml(server_ip):
     return xmlrpclib.ServerProxy(server_ip)
 
@@ -119,11 +116,12 @@ def main():
     #access_key = options.access_key
     #secret_key = options.secret_key
     server = connect_to_xml(options.server_ip_and_port)
-    buck = open_1kg_connection()
+    (conn,buck) = open_1kg_connection()
     print(server.system.listMethods())
     bam=server.get_bam_file()
     i = 0
     while( bam!= False):
+        filestart =time.time()
         key = buck.get_key(bam)
         bam_file = os.path.join(working_dir,os.path.basename(bam))
         start_time=time.time()
@@ -137,21 +135,23 @@ def main():
         # first byte = chromosome number in ASCII
         # second byte = read length
         # third byte = position start of the read mapped to 
-        output = (bam_file) + ".cnvb"
-        gzip_out = (bam_file) + ".cnv.gz"
+        output = (bam_file) + ".cnv"
+        gzip_out = (bam_file) + ".gz"
         start_time=time.time()
         write_coordinates_and_length(bam,output)
-        gzip_file(output,gzip_file)
+        gzip_file(output,gzip_out)
         end_time=time.time()
         logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
         os.remove(bam_file)        
         os.remove(output)
-        b = c.get_bucket('1kg_cnvrd2')
+        b =conn.get_bucket('1kg_cnvrd2')
         k=Key(b)
-        k.key = os.basename(gzip_out)
+        k.key = os.path.basename(gzip_out)
         k.set_contents_from_filename(gzip_out)
         os.remove(gzip_out)
         bam=server.get_bam_file()
+        fileend=time.time()
+        logging.info("Full elapsed time for file : {0}  = {1}".format(bam_file,str((fileend-filestart)/60)))
         i = i + 1
 
 if __name__=="__main__":main()

@@ -4,6 +4,7 @@ from boto.s3.key import Key
 import os
 import xmlrpclib
 import logging
+import subprocess
 import gzip
 import time
 import progressbar
@@ -100,10 +101,7 @@ def download_file(bam_file,key):
         logging.error(e)
     pbar.finish()
 def gzip_file(output,gzip_out):
-    with open(output,'rb') as out:
-        with gzip.open(gzip_out,'wb') as zip_out:
-           zip_out.writelines(out)
-
+    subprocess.check_call(['gzip',output])
 def connect_to_xml(server_ip):
     return xmlrpclib.ServerProxy(server_ip)
 
@@ -138,7 +136,7 @@ def main():
         # second byte = read length
         # third byte = position start of the read mapped to 
         output = (bam_file) + ".cnv"
-        gzip_out = (bam_file) + ".gz"
+        gzip_out = (output) + ".gz"
         start_time=time.time()
         write_coordinates_and_length(bam,output)
         gzip_file(output,gzip_out)
