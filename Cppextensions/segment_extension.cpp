@@ -1,14 +1,15 @@
 #include <Rcpp.h>
 
 using namespace Rcpp;
-
 /**
- * Function takes a matrix with both a subregion and a start and end vector and returns a full matrix.
+ * function stretches each row of a matrix to the window size.
  *
  * @author James Boocock
- * @date 18/05/2014
+ * @data 10/06/2013
  *
- **/
+*/
+
+
 // [[Rcpp::export]]
 NumericMatrix stretchToWindowSize(NumericMatrix subRegionMatrix,NumericVector start, NumericVector end, int window_size){
     int i,j,m;
