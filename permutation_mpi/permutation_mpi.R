@@ -2,7 +2,7 @@ library(Rmpi)
 library(CNVrd2)
 args  <- commandArgs(T)
 load('/home/james.boocock/disease_genes_project/.RData')
-mpi.spawn.Rslaves(1)
+mpi.spawn.Rslaves(nslaves=args[1])
 
    # In case R exits unexpectedly, have it automatically clean up
     # resources taken up by Rmpi (slaves, memory, etc...)
