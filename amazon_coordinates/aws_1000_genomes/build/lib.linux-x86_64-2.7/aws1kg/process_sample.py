@@ -101,7 +101,7 @@ def download_file(bam_file,key):
         logging.error(e)
     pbar.finish()
 def gzip_file(output,gzip_out):
-    subprocess.check__call(['gzip',output])
+    subprocess.check_call(['gzip',output])
 def connect_to_xml(server_ip):
     return xmlrpclib.ServerProxy(server_ip)
 
@@ -136,14 +136,13 @@ def main():
         # second byte = read length
         # third byte = position start of the read mapped to 
         output = (bam_file) + ".cnv"
-        gzip_out = (bam_file) + ".gz"
+        gzip_out = (output) + ".gz"
         start_time=time.time()
         write_coordinates_and_length(bam,output)
         gzip_file(output,gzip_out)
         end_time=time.time()
         logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
         os.remove(bam_file)        
-        os.remove(output)
         b =conn.get_bucket('1kg_cnvrd2')
         k=Key(b)
         k.key = os.path.basename(gzip_out)

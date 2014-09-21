@@ -143,7 +143,6 @@ def main():
         end_time=time.time()
         logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
         os.remove(bam_file)        
-        os.remove(output)
         b =conn.get_bucket('1kg_cnvrd2')
         k=Key(b)
         k.key = os.path.basename(gzip_out)
