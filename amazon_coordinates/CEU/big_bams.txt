@@ -1,0 +1,4 @@
+data/NA06985/alignment/NA06985.mapped.ILLUMINA.bwa.CEU.low_coverage.20120522.bam
+data/NA11832/alignment/NA11832.mapped.ILLUMINA.bwa.CEU.low_coverage.20120522.bam
+data/NA11994/alignment/NA11994.mapped.ILLUMINA.bwa.CEU.low_coverage.20120522.bam
+data/NA12155/alignment/NA12155.mapped.ILLUMINA.bwa.CEU.low_coverage.20120522.bam
