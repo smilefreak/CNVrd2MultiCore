@@ -8,7 +8,6 @@ import logging
 import subprocess
 import gzip
 import time
-import progressbar
 import xmlrpclib
 #
 #  Creates coordinates files for each file in the 1000 genomes data set
@@ -84,23 +83,16 @@ def progress_callback(current,total):
 
 def download_file(bam_file,key):
     # get_file_size
-    global pbar
     size  = key.size
     logging.info("File Size " + str(size))
-    widgets = [
-        unicode(bam_file, errors='ignore').encode('utf-8'), ' ',
-        progressbar.FileTransferSpeed(),
-        ' <<<', progressbar.Bar(), '>>> ',
-        progressbar.Percentage(), ' ', progressbar.ETA()
-    ]
-    pbar = progressbar.ProgressBar(widgets=widgets, maxval=size)
-    pbar.start()
     try:
         key.get_contents_to_filename(bam_file,cb=progress_callback,num_cb=10000)
     except Exception, e:
         logging.error("Failed to Download " + bam_file)
         logging.error(e)
-    pbar.finish()
+	print('fuck')
+	sys.exit(1)
+
 def gzip_file(output,gzip_out):
     subprocess.check_call(['gzip',output])
 def connect_to_xml(server_ip):
@@ -146,7 +138,7 @@ def main():
         end_time=time.time()
         logging.info("Elapsed time to get positions of reads from bam file : {0} = {1}".format(bam_file,str(end_time-start_time)))
         os.remove(bam_file)        
-        b =conn.get_bucket('1kg_cnvrd2')
+	time.sleep('1800')	
         k=Key(b)
         k.key = os.path.basename(gzip_out)
         k.set_contents_from_filename(gzip_out)
