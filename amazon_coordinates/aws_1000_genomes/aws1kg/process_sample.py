@@ -124,6 +124,8 @@ def main():
     while( bam!= False):
         filestart =time.time()
         key = buck.get_key(bam)
+        if ( key == None) :
+            continue
         bam_file = os.path.join(working_dir,os.path.basename(bam))
         start_time=time.time()
         download_file(bam_file,key)
