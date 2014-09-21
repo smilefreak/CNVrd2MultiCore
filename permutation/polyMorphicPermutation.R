@@ -182,6 +182,10 @@ get_max_median = function(permutations,probs){
 
 m_permutationdata = lapply(polyMorphicResamplingNew,get_max_median,probs=c(.05,.95))
 m_readata = get_max_median(real_polyMorphic,probs=c(.05,.95))
+m_permutation_per_region=as.matrix(m_permutationdata)
+m_permutation_per_region=apply(m_permutation_per_region,1,function(x) {return(x[[1]])})
+
+
 
 q_permutationdata = lapply(polyMorphicResamplingNew,get_quantiles,probs=c(.05,.95))
 q_realdata = get_quantiles(real_polyMorphic,probs=c(.05,.95)) 
@@ -196,6 +200,7 @@ for ( i in 1:nrow(q_ranges_per_region)){
 			pvalue[i] = 0
 		}
 }
+
 
 wilcox.test
 #range_quantile=lapply(q_permutationdata,function(x) return(mapply(rangeDifference,split(x,row(x)),split(q_realdata,col(q_realdata)))))
@@ -218,9 +223,9 @@ for ( i in 1:nrow(ranges_per_region)){
 		}
 }
 count2 = c()
-for ( i in 1:nrow(ranges_per_region)){
+for ( i in 2:nrow(ranges_per_region)){
 	print(i)
-	count2[i] = 0
+	fount2[i] = 0
 	for( j in 1:ncol(ranges_per_region)){
 #				print(ranges_per_region[1000,j])
 				if((mean(ranges_per_region) + 1.5* sd(ranges_per_region[,j])) <= ranges_per_region[i,j]){
@@ -249,9 +254,45 @@ for( i in 1:length(counts)){
 #cut out windows with less than 2 in length
 
 
+new_truncate_polymorphic_regions = function(new_counts){
+	start_index = c()
+	end_index = c()
+	width = c()
+	index = 1
+	set_start = T
+	window_size=0
+	for ( i in 1:length(new_counts)){
+		if(new_counts[i] == 1){
+				if(set_start == T){
+					start_index[index] = (i * 1000) - 1000	
+					set_start = F
+					window_size=0
+				}
+			window_size = window_size +  1
+		}else{
+				# going to be one longer than it needs to be if 
+				# what we are testing really doesn't match up
+				if(set_start == F){
+					end_index[index] = (i * 1000) - 1000
+					width[index] = end_index[index] - start_index[index]	
+					set_start =T 
+					index= index + 1
+				}else{
+					set_start = T
+				}
+		}
+	}
+	if(length(start_index) == (length(end_index) + 1)){
+		start_index=start_index[1:length(start_index)- 1]
+	}
+	print(length(start_index))
+	print(length(end_index))
+	return(cbind(start_index,end_index,width))
+}
 truncate_polymorphic_regions = function(new_counts){
 	start_index = c()
 	end_index = c()
+	width = c()
 	index = 1
 	set_start = T
 	window_size=0
@@ -267,7 +308,8 @@ truncate_polymorphic_regions = function(new_counts){
 				# going to be one longer than it needs to be if 
 				# what we are testing really doesn't match up
 				if(set_start == F && window_size >= 5){
-					end_index[index] = (i * 1000) 
+					end_index[index] = (i * 1000) - 1000 
+					width[index] = end_index[index] - start_index[index]	
 					set_start =T 
 					index= index + 1
 				}else{
@@ -280,14 +322,20 @@ truncate_polymorphic_regions = function(new_counts){
 	}
 	print(length(start_index))
 	print(length(end_index))
-	return(cbind(start_index,end_index))
+	return(cbind(start_index,end_index,width))
 }
-ninetyseven=quantile(apply(q_ranges_per_region,1,quantile,probs=.975),probs=.975)
-putative_regions = truncate_polymorphic_regions(sapply(q_realdata,function(x) ifelse(x >= ninetyseven,1,0)))
-putative_regions = truncate_polymorphic_regions(new_counts)
-putative_regions = truncate_polymorphic_regions(pvalue)
-temp_x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]],xlim=limits)
-temp_y = identifyPolymorphicRegion(Object = results[[1]],segmentObject=new_samples[[2]],xlim=limits)
+
+############ Get putative regions for each region ###################
+
+p_ninetyseven=quantile(apply(q_ranges_per_region,1,quantile,probs=.975),probs=.975)
+putative_regions = truncate_polymorphic_regions(sapply(q_realdata,function(x) ifelse(x >= p_ninetyseven,1,0)))
+#temp_x = identifyPolymorphicRegion(Object = results[[1]],segmentObject=segment_scores[[1]],xlim=limits)
+#temp_y = identifyPolymorphicRegion(Object = results[[1]],segmentObject=new_samples[[2]],xlim=limits)
+
+m_ninetyseven=quantile(apply(m_permutation_per_region,1,quantile,probs=.975),probs=.975)
+
+m_putative_regions = truncate_polymorphic_regions(sapply(m_readata,function(x) ifelse(x >= m_ninetyseven,1,0)))
+
 pdf('putative_regions.pdf')
 for ( i in 1:10){
 limits=c(putative_regions[i,1] ,putative_regions[i,2] )
@@ -295,3 +343,79 @@ plotPolymorphicRegion(Object = results[[1]],polymorphicRegionObject=x,xlim=limit
 plotPolymorphicRegion(Object = results[[1]],polymorphicRegionObject=y,xlim=limits)
 }
 dev.off()
+
+
+
+############## GFF SECTION ####################
+
+require(rtracklayer) 
+malus_gff =import.gff3("../tmp/Malus_x_domestica.v1.0.consensus.fixed.gff",asRangedData=F) 
+resistance_gff = import.gff3('../tmp/resistance_genes_fixed.gff',asRangedData=F)
+resistance_gff= resistance_gff[which(resistance_gff$type=="mRNA"),]
+# Look for genes that fall in the regions 
+total <- CDS <- count=0 
+#Start with CDS. 
+malus_gff_mrna=malus_gff[intersect(which(malus_gff$type=="mRNA"),which(seqnames(malus_gff)=="chr2")),]
+no_mrna=length(malus_gff_mrna)
+get_genes_in_regions = function(x,gff){
+  gff_ranges =as.data.frame(ranges(gff))
+  mrna_in_region=list()
+  no_items=1
+  for(i in 1:nrow(gff_ranges)){
+    if((x[1] <= gff_ranges$start[i] && gff_ranges$start[i] <= x[2])||(x[1] <= gff_ranges$end[i] && gff_ranges$end[i] <= x[2])){
+            mrna_in_region[[no_items]]=gff[i]
+            no_items = no_items + 1
+    }
+  }
+  return(mrna_in_region)
+}
+
+# Range Quantile Perumation test
+#
+# Quantile Ranges 
+#
+#
+
+genes_in_regions = apply(putative_regions,1,get_genes_in_regions,gff=malus_gff_mrna)
+res_genes_in_regions = apply(putative_regions,1,get_genes_in_regions,gff=resistance_gff)
+no_res_genes = length(resistance_gff)
+no_genes = length(malus_gff_mrna)
+no_res_genes_in_regions = sum(as.numeric(lapply(res_genes_in_regions,length)))
+no_gene_in_regions = sum(as.numeric(lapply(genes_in_regions,length))) 
+fisher.matrix=matrix(c(no_res_genes_in_regions,no_res_genes,no_gene_in_regions,no_genes),ncol=2)
+range_fisher_test=fisher.test(fisher.matrix)
+
+
+# Min/max diff from Permutation test
+#
+#
+# Difference from median abs(quantile low and up - median) 
+#
+#
+#
+genes_in_regions = apply(m_putative_regions,1,get_genes_in_regions,gff=malus_gff_mrna)
+res_genes_in_regions = apply(m_putative_regions,1,get_genes_in_regions,gff=resistance_gff)
+no_res_genes = length(resistance_gff)
+no_genes = length(malus_gff_mrna)
+no_res_genes_in_regions = sum(as.numeric(lapply(res_genes_in_regions,length)))
+no_gene_in_regions = sum(as.numeric(lapply(genes_in_regions,length))) 
+fisher.matrix=matrix(c(no_res_genes_in_regions,no_res_genes,no_gene_in_regions-no_res_genes_in_regions,no_genes-no_res_genes),nrow=2)
+max_median_fisher_test=fisher.test(fisher.matrix)
+
+
+# What are these testing talk to Mik about it tommorrow.
+#
+# Both tests give different results.
+# My hypothesis is that we see and overrepresentation of annotated resistance genes.
+# As putative CNVs
+
+# consensus between the two permutation testing approaches.
+
+
+ 
+
+
+
+
+
+
