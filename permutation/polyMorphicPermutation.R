@@ -223,9 +223,9 @@ for ( i in 1:nrow(ranges_per_region)){
 		}
 }
 count2 = c()
-for ( i in 1:nrow(ranges_per_region)){
+for ( i in 2:nrow(ranges_per_region)){
 	print(i)
-	count2[i] = 0
+	fount2[i] = 0
 	for( j in 1:ncol(ranges_per_region)){
 #				print(ranges_per_region[1000,j])
 				if((mean(ranges_per_region) + 1.5* sd(ranges_per_region[,j])) <= ranges_per_region[i,j]){

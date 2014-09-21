@@ -2,3 +2,12 @@ INFO:root:File Size 33358660023
 INFO:root:File Size 33358660023
 INFO:root:File Size 33358660023
 INFO:root:Elapsed time to download bam : /bams/HG03006.mapped.ILLUMINA.bwa.BEB.low_coverage.20130415.bam = 3827.58984017
+INFO:root:File Size 21017239645
+INFO:root:File Size 22945152163
+INFO:root:Elapsed time to download bam : /bams/HG01840.mapped.ILLUMINA.bwa.KHV.low_coverage.20120522.bam = 2723.9804318
+INFO:root:Elapsed time to get positions of reads from bam file : /bams/HG01840.mapped.ILLUMINA.bwa.KHV.low_coverage.20120522.bam = 8757.89493012
+INFO:root:Full elapsed time for file : /bams/HG01840.mapped.ILLUMINA.bwa.KHV.low_coverage.20120522.bam  = 193.242192018
+INFO:root:File Size 20156048996
+ERROR:root:Failed to Download /bams/HG01841.mapped.ILLUMINA.bwa.KHV.low_coverage.20120522.bam
+ERROR:root:The read operation timed out
+INFO:root:Elapsed time to download bam : /bams/HG01841.mapped.ILLUMINA.bwa.KHV.low_coverage.20120522.bam = 1962.81105018
