@@ -1,0 +1,1 @@
+data/NA06985/alignment/NA06985.mapped.ILLUMINA.bwa.CEU.low_coverage.20120522.bam
