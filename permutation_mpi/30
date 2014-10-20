@@ -1,0 +1,144 @@
+
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(Rmpi)
+> library(CNVrd2)
+Loading required package: DNAcopy
+Loading required package: Rsamtools
+Loading required package: IRanges
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following object is masked from ‘package:stats’:
+
+    xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, as.data.frame, cbind, colnames, duplicated, eval,
+    Filter, Find, get, intersect, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rep.int, rownames, sapply, setdiff, sort, table,
+    tapply, union, unique, unlist
+
+Loading required package: GenomicRanges
+Loading required package: Biostrings
+Loading required package: VariantAnnotation
+Loading required package: rjags
+Loading required package: coda
+Loading required package: lattice
+Linked to JAGS 3.2.0
+Loaded modules: basemod,bugs
+Loading required package: ggplot2
+> library(Rcpp)
+> args  <- commandArgs(T)
+> load('/home/james.boocock/disease_genes_project/apple_segment.RData')
+> load('/home/james.boocock/disease_genes_project/cnvrd2_objects_nesi.Rdata')
+> write.table(date(),file="start.txt")
+> mpi.spawn.Rslaves(nslaves=30)
+	30 slaves are spawned successfully. 0 failed.
+master  (rank 0 , comm 1) of size 31 is running on: compute-bigmem-001-p 
+slave1  (rank 1 , comm 1) of size 31 is running on: compute-bigmem-001-p 
+slave2  (rank 2 , comm 1) of size 31 is running on: compute-bigmem-001-p 
+slave3  (rank 3 , comm 1) of size 31 is running on: compute-bigmem-001-p 
+... ... ...
+slave29 (rank 29, comm 1) of size 31 is running on: compute-bigmem-001-p 
+slave30 (rank 30, comm 1) of size 31 is running on: compute-bigmem-001-p 
+>    # In case R exits unexpectedly, have it automatically clean up
+>     # resources taken up by Rmpi (slaves, memory, etc...)
+> 
+> permuteChromosome2 <- function(task){
++     chr  <- task[2]
++     i <- task[1]
++     st  <- task[3]
++     en = task[4]
++     windows  <- task[5]
++     sample_list  <- sample_list_per_chromosome[[chr]]
++     result <- lapply(sample_list,permuteSample,st=st,windows=windows)
++     result <- list(segmentResults=result)
++     polyMorphicResampling = getSubRegionMatrixFromSegmentScores(segmentResults=result$segmentResults,window_size = windows,st,en)
++     return(list(i=i,chr=chr,result=polyMorphicResampling))
++ }
+> permuteChromosome <- function(task){
++     chr  <- task[2]
++     i <- task[1]
++     st  <- task[3]
++     en  <- task[4]
++     windows  <- task[5]
++     sample_list  <- sample_list_per_chromosome[[chr]]
++     result <- lapply(sample_list,permuteSample,st=st,windows=windows)
++     result <- list(segmentResults=result)
++     polyMorphicResampling=identifyPolymorphicRegion(Object=cnvrd2_objects[[chr]],segmentObject=result,plotPolymorphicRegion=F)
++     return(list(i=i,chr=chr,result=polyMorphicResampling))
++ }
+> 
+> names(cnvrd2_objects)  <- lapply(cnvrd2_objects,function(x){ x@chr})
+> 
+> run_slave_permutation <- function(){
++     require(CNVrd2)
++     require(Rcpp)
++     sourceCpp("/home/james.boocock/CNVrd2MultiCore/Cppextensions/polyMorphicStretch.cpp")
++     task  <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
++     task_info  <- mpi.get.sourcetag()
++     tag <- task_info[2]
++     while(tag != 2){
++        result <- permuteChromosome2(task)
++        mpi.send.Robj(result,0,1)
++        task  <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
++        task_info  <- mpi.get.sourcetag()
++        tag <- task_info[2]
++     }
++     junk <- 0
++     mpi.send.Robj(junk,0,2)
++ }
+> 
+> #collect results
+> 
+> #`sourceCpp("generate_permutations.cpp")
+> 
+> permuteSample <- function(segmentationResultsForSample,st,windows){
++         ranks=seq(1,nrow(segmentationResultsForSample))
++         reorder_ranks=sample(ranks,replace=F)
++         
++         #segmentationResultsForSample = segmentationResultsForSample[reorder_ranks,]
++         # Improve speed of this horrible for loop lol
++         for( i in 1:nrow(segmentationResultsForSample)){
++             dif = segmentationResultsForSample[i,4] - segmentationResultsForSample[i,3] + windows
++             segmentationResultsForSample[i,3] = st
++             segmentationResultsForSample[i,4] = st  + dif - windows
++             st = st + dif
++         }
++         return(segmentationResultsForSample)
++ }
+> samples=rownames(segment_results[[1]]$segmentationScores)
+> sample_list_per_chromosome  <- list()
+> for( i in 1:length(segment_results)){
++     sample_list_per_chromosome[[i]]=lapply(samples, function(x) segment_results[[i]]$segmentResults[[which(rownames(segment_results[[i]]$segmentationScores)==as.character(x))]])
++ }
+> 
+> mpi.bcast.Robj2slave(permuteSample)
+> mpi.bcast.Robj2slave(segment_results)

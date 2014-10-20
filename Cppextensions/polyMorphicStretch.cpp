@@ -20,16 +20,16 @@ NumericMatrix getSubRegionMatrixFromSegmentScores(List segmentResults,int window
     NumericMatrix result(list_length,mat_size);
     int row_index = 0;
     int loc_index = 0;
-    Rcout << " segment_length " << list_length << "\n";
-    Rcout << " window_size " << window_size << "\n";
-    Rcout << " st " << st << "\n";
-    Rcout << " en " << en << "\n";
+    ////Rcout << " segment_length " << list_length << "\n";
+    ////Rcout << " window_size " << window_size << "\n";
+    ////Rcout << " st " << st << "\n";
+    //Rcout << " en " << en << "\n";
     for(int list_index=0; list_index < list_length; list_index++){
         DataFrame temp_dat = as<DataFrame>(segmentResults[list_index]);
         NumericVector loc_start = as<NumericVector>(temp_dat["loc.start"]);
         NumericVector loc_end  =  as<NumericVector>(temp_dat["loc.end"]);
         NumericVector seg_mean = as<NumericVector>(temp_dat["seg.mean"]);
-        Rcout << "Can we extract these three items. \n";
+        //Rcout << "Can we extract these three items. \n";
         int end_pos = 0;
         int start_window = window_size;
         // Variables to work out what the distance between 2 points
